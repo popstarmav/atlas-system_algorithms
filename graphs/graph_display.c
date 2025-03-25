@@ -5,7 +5,7 @@
  * graph_display - Prints the adjacency list of the graph
  * @graph: Pointer to the graph to display
  */
-void graph_display(graph_t *graph)
+void graph_display(const graph_t *graph)
 {
     vertex_t *vertex;
     edge_t *edge;
@@ -34,4 +34,3 @@ void graph_display(graph_t *graph)
         vertex = vertex->next;
     }
 }
-
