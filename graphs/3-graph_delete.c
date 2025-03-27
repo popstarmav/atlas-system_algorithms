@@ -47,4 +47,3 @@ void graph_delete(graph_t *graph)
 	free_vertices(graph->vertices);
 	free(graph);
 }
-
