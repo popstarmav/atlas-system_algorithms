@@ -11,31 +11,31 @@
  * Return: void
  */
 void dfs_helper(const vertex_t *vertex, int *visited, size_t depth,
-                size_t *max_depth, void (*action)(const vertex_t *v, size_t depth))
+		size_t *max_depth, void (*action)(const vertex_t *v, size_t depth))
 {
-    edge_t *edge;
+	edge_t *edge;
 
-    if (!vertex || visited[vertex->index])
-        return;
+	if (!vertex || visited[vertex->index])
+		return;
 
-    /* Mark vertex as visited */
-    visited[vertex->index] = 1;
+	/* Mark vertex as visited */
+	visited[vertex->index] = 1;
 
-    /* Call action function on the vertex */
-    action(vertex, depth);
+	/* Call action function on the vertex */
+	action(vertex, depth);
 
-    /* Update max depth if current depth is greater */
-    if (depth > *max_depth)
-        *max_depth = depth;
+	/* Update max depth if current depth is greater */
+	if (depth > *max_depth)
+		*max_depth = depth;
 
-    /* Traverse all adjacent vertices */
-    edge = vertex->edges;
-    while (edge)
-    {
-        if (!visited[edge->dest->index])
-            dfs_helper(edge->dest, visited, depth + 1, max_depth, action);
-        edge = edge->next;
-    }
+	/* Traverse all adjacent vertices */
+	edge = vertex->edges;
+	while (edge)
+	{
+		if (!visited[edge->dest->index])
+			dfs_helper(edge->dest, visited, depth + 1, max_depth, action);
+		edge = edge->next;
+	}
 }
 
 /**
@@ -44,29 +44,31 @@ void dfs_helper(const vertex_t *vertex, int *visited, size_t depth,
  * @action: Function to call for each visited vertex
  * Return: The maximum depth reached, or 0 on failure
  */
-size_t depth_first_traverse(const graph_t *graph, void (*action)(const vertex_t *v, size_t depth))
+size_t depth_first_traverse(const graph_t *graph,
+		void (*action)(const vertex_t *v, size_t depth))
 {
-    int *visited;
-    size_t max_depth = 0;
-    size_t i;
+	int *visited;
+	size_t max_depth = 0;
+	size_t i;
 
-    /* Check for valid inputs */
-    if (!graph || !action || !graph->vertices)
-        return (0);
+	/* Check for valid inputs */
+	if (!graph || !action || !graph->vertices)
+		return (0);
 
-    /* Allocate and initialize visited array */
-    visited = malloc(sizeof(int) * graph->nb_vertices);
-    if (!visited)
-        return (0);
+	/* Allocate and initialize visited array */
+	visited = malloc(sizeof(int) * graph->nb_vertices);
+	if (!visited)
+		return (0);
 
-    for (i = 0; i < graph->nb_vertices; i++)
-        visited[i] = 0;
+	for (i = 0; i < graph->nb_vertices; i++)
+		visited[i] = 0;
 
-    /* Start DFS from the first vertex */
-    dfs_helper(graph->vertices, visited, 0, &max_depth, action);
+	/* Start DFS from the first vertex */
+	dfs_helper(graph->vertices, visited, 0, &max_depth, action);
 
-    /* Free allocated memory */
-    free(visited);
+	/* Free allocated memory */
+	free(visited);
 
-    return (max_depth);
+	return (max_depth);
 }
+
