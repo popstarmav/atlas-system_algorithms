@@ -2,31 +2,18 @@
 #include "heap.h"
 
 /**
- * get_parent_node - Gets the parent node at a specific index
+ * swap_nodes - Swaps the data of two nodes
  *
- * @root: Pointer to the root of the tree
- * @index: Index of the node to find
- * @current_index: Current index in the traversal
- *
- * Return: Pointer to the parent node
+ * @a: First node
+ * @b: Second node
  */
-binary_tree_node_t *get_parent_node(binary_tree_node_t *root, size_t index,
-                                   size_t current_index)
+void swap_nodes(binary_tree_node_t *a, binary_tree_node_t *b)
 {
-    binary_tree_node_t *left, *right;
+    void *temp;
 
-    if (current_index == (index / 2))
-        return (root);
-
-    if (index < (2 * current_index + 1))
-        return (NULL);
-
-    left = get_parent_node(root->left, index, 2 * current_index + 1);
-    if (left)
-        return (left);
-
-    right = get_parent_node(root->right, index, 2 * current_index + 2);
-    return (right);
+    temp = a->data;
+    a->data = b->data;
+    b->data = temp;
 }
 
 /**
@@ -39,58 +26,16 @@ binary_tree_node_t *get_parent_node(binary_tree_node_t *root, size_t index,
  */
 binary_tree_node_t *heapify_up(heap_t *heap, binary_tree_node_t *node)
 {
-    void *temp;
-
     if (!node || !node->parent)
         return (node);
 
     if (heap->data_cmp(node->data, node->parent->data) < 0)
     {
-        /* Swap data with parent */
-        temp = node->data;
-        node->data = node->parent->data;
-        node->parent->data = temp;
-
-        /* Continue heapifying up */
+        swap_nodes(node, node->parent);
         return (heapify_up(heap, node->parent));
     }
 
     return (node);
-}
-
-/**
- * insert_at_position - Inserts a node at a specific position in the heap
- *
- * @heap: Pointer to the heap
- * @data: Data to insert
- * @index: Position to insert at
- *
- * Return: Pointer to the inserted node, or NULL on failure
- */
-binary_tree_node_t *insert_at_position(heap_t *heap, void *data, size_t index)
-{
-    binary_tree_node_t *parent, *new_node;
-
-    if (index == 0)
-    {
-        heap->root = binary_tree_node(NULL, data);
-        return (heap->root);
-    }
-
-    parent = get_parent_node(heap->root, index, 0);
-    if (!parent)
-        return (NULL);
-
-    if (index % 2) /* Odd index means left child */
-        parent->left = binary_tree_node(parent, data);
-    else /* Even index means right child */
-        parent->right = binary_tree_node(parent, data);
-
-    new_node = (index % 2) ? parent->left : parent->right;
-    if (!new_node)
-        return (NULL);
-
-    return (heapify_up(heap, new_node));
 }
 
 /**
@@ -103,14 +48,59 @@ binary_tree_node_t *insert_at_position(heap_t *heap, void *data, size_t index)
  */
 binary_tree_node_t *heap_insert(heap_t *heap, void *data)
 {
-    binary_tree_node_t *node;
+    binary_tree_node_t *new_node = NULL, *current;
+    size_t size, i;
+    unsigned int bit;
 
     if (!heap || !data)
         return (NULL);
 
-    node = insert_at_position(heap, data, heap->size);
-    if (node)
+    /* If the heap is empty, create the root node */
+    if (heap->root == NULL)
+    {
+        heap->root = binary_tree_node(NULL, data);
+        if (heap->root == NULL)
+            return (NULL);
         heap->size++;
+        return (heap->root);
+    }
 
-    return (node);
+    /* Find the position for the new node */
+    size = heap->size + 1;
+    current = heap->root;
+
+    /* Find the highest bit in size */
+    for (i = 0, bit = size; bit > 0; bit >>= 1, i++)
+        ;
+    i--; /* Adjust for the extra shift */
+
+    /* Navigate to the parent of the new node using the bits of size */
+    for (bit = 1 << (i - 1); bit > 1; bit >>= 1)
+    {
+        if (size & bit)
+            current = current->right;
+        else
+            current = current->left;
+    }
+
+    /* Create the new node as left or right child */
+    if (size & 1) /* Odd size means right child */
+    {
+        new_node = binary_tree_node(current, data);
+        current->right = new_node;
+    }
+    else /* Even size means left child */
+    {
+        new_node = binary_tree_node(current, data);
+        current->left = new_node;
+    }
+
+    if (!new_node)
+        return (NULL);
+
+    /* Increment heap size */
+    heap->size++;
+
+    /* Restore the min heap property */
+    return (heapify_up(heap, new_node));
 }
