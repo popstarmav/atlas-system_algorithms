@@ -34,6 +34,7 @@ typedef struct heap_s
 } heap_t;
 
 /* Function prototype */
+void *heap_extract(heap_t *heap);
 heap_t *heap_create(int (*data_cmp)(void *, void *));
 binary_tree_node_t *heap_insert(heap_t *heap, void *data);
 binary_tree_node_t *binary_tree_node(binary_tree_node_t *parent, void *data);
