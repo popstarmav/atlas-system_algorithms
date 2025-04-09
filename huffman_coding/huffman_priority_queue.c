@@ -23,6 +23,43 @@ int symbol_cmp(void *p1, void *p2)
 }
 
 /**
+ * create_and_insert_node - Creates and inserts a node into the priority queue
+ * @priority_queue: The priority queue
+ * @data: The character
+ * @freq: The frequency
+ *
+ * Return: 1 on success, 0 on failure
+ */
+int create_and_insert_node(heap_t *priority_queue, char data, size_t freq)
+{
+	binary_tree_node_t *nested_node;
+	symbol_t *symbol;
+
+	/* Create a symbol with the character and its frequency */
+	symbol = symbol_create(data, freq);
+	if (!symbol)
+		return (0);
+
+	/* Create a binary tree node with the symbol as data */
+	nested_node = binary_tree_node(NULL, symbol);
+	if (!nested_node)
+	{
+		free(symbol);
+		return (0);
+	}
+
+	/* Insert the binary tree node into the min heap */
+	if (heap_insert(priority_queue, nested_node) == NULL)
+	{
+		free(symbol);
+		free(nested_node);
+		return (0);
+	}
+
+	return (1);
+}
+
+/**
  * huffman_priority_queue - Creates a priority queue for Huffman coding
  * @data: Array of characters
  * @freq: Array of frequencies
@@ -33,8 +70,6 @@ int symbol_cmp(void *p1, void *p2)
 heap_t *huffman_priority_queue(char *data, size_t *freq, size_t size)
 {
 	heap_t *priority_queue;
-	binary_tree_node_t *nested_node;
-	symbol_t *symbol;
 	size_t i;
 
 	/* Create the min heap */
@@ -45,28 +80,8 @@ heap_t *huffman_priority_queue(char *data, size_t *freq, size_t size)
 	/* For each character, create a symbol and add it to the min heap */
 	for (i = 0; i < size; i++)
 	{
-		/* Create a symbol with the character and its frequency */
-		symbol = symbol_create(data[i], freq[i]);
-		if (!symbol)
+		if (!create_and_insert_node(priority_queue, data[i], freq[i]))
 		{
-			heap_delete(priority_queue, NULL);
-			return (NULL);
-		}
-
-		/* Create a binary tree node with the symbol as data */
-		nested_node = binary_tree_node(NULL, symbol);
-		if (!nested_node)
-		{
-			free(symbol);
-			heap_delete(priority_queue, NULL);
-			return (NULL);
-		}
-
-		/* Insert the binary tree node into the min heap */
-		if (heap_insert(priority_queue, nested_node) == NULL)
-		{
-			free(symbol);
-			free(nested_node);
 			heap_delete(priority_queue, NULL);
 			return (NULL);
 		}
