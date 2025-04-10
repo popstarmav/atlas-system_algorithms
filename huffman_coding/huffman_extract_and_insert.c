@@ -13,7 +13,6 @@ int huffman_extract_and_insert(heap_t *priority_queue)
 	binary_tree_node_t *node1, *node2, *new_node;
 	binary_tree_node_t *nested1, *nested2, *new_nested;
 	symbol_t *symbol1, *symbol2, *new_symbol;
-	size_t freq_sum;
 
 	if (!priority_queue || !priority_queue->root || priority_queue->size < 2)
 		return (0);
@@ -36,11 +35,8 @@ int huffman_extract_and_insert(heap_t *priority_queue)
 	symbol1 = (symbol_t *)(nested1->data);
 	symbol2 = (symbol_t *)(nested2->data);
 
-	/* Calculate the sum of frequencies */
-	freq_sum = symbol1->freq + symbol2->freq;
-
 	/* Create a new symbol with the sum of frequencies */
-	new_symbol = symbol_create(-1, freq_sum);
+	new_symbol = symbol_create(-1, symbol1->freq + symbol2->freq);
 	if (!new_symbol)
 	{
 		heap_insert(priority_queue, node1);
@@ -61,8 +57,6 @@ int huffman_extract_and_insert(heap_t *priority_queue)
 	/* Set the extracted nested nodes as children of the new nested node */
 	new_nested->left = nested1;
 	new_nested->right = nested2;
-	nested1->parent = new_nested;
-	nested2->parent = new_nested;
 
 	/* Create a new node for the priority queue */
 	new_node = binary_tree_node(NULL, new_nested);
