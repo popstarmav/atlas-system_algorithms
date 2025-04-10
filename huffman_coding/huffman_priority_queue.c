@@ -23,14 +23,13 @@ int symbol_cmp(void *p1, void *p2)
 }
 
 /**
- * create_and_insert_node - Creates and inserts a node into the priority queue
- * @priority_queue: The priority queue
+ * create_node - Creates a node for the priority queue
  * @data: The character
  * @freq: The frequency
  *
- * Return: 1 on success, 0 on failure
+ * Return: Pointer to the created node, NULL on failure
  */
-int create_and_insert_node(heap_t *priority_queue, char data, size_t freq)
+binary_tree_node_t *create_node(char data, size_t freq)
 {
 	binary_tree_node_t *nested_node;
 	symbol_t *symbol;
@@ -38,25 +37,17 @@ int create_and_insert_node(heap_t *priority_queue, char data, size_t freq)
 	/* Create a symbol with the character and its frequency */
 	symbol = symbol_create(data, freq);
 	if (!symbol)
-		return (0);
+		return (NULL);
 
 	/* Create a binary tree node with the symbol as data */
 	nested_node = binary_tree_node(NULL, symbol);
 	if (!nested_node)
 	{
 		free(symbol);
-		return (0);
+		return (NULL);
 	}
 
-	/* Insert the binary tree node into the min heap */
-	if (heap_insert(priority_queue, nested_node) == NULL)
-	{
-		free(symbol);
-		free(nested_node);
-		return (0);
-	}
-
-	return (1);
+	return (nested_node);
 }
 
 /**
@@ -70,6 +61,7 @@ int create_and_insert_node(heap_t *priority_queue, char data, size_t freq)
 heap_t *huffman_priority_queue(char *data, size_t *freq, size_t size)
 {
 	heap_t *priority_queue;
+	binary_tree_node_t *node;
 	size_t i;
 
 	/* Create the min heap */
@@ -77,11 +69,20 @@ heap_t *huffman_priority_queue(char *data, size_t *freq, size_t size)
 	if (!priority_queue)
 		return (NULL);
 
-	/* For each character, create a symbol and add it to the min heap */
+	/* For each character, create a node and add it to the min heap */
 	for (i = 0; i < size; i++)
 	{
-		if (!create_and_insert_node(priority_queue, data[i], freq[i]))
+		node = create_node(data[i], freq[i]);
+		if (!node)
 		{
+			heap_delete(priority_queue, NULL);
+			return (NULL);
+		}
+
+		if (heap_insert(priority_queue, node) == NULL)
+		{
+			free(((symbol_t *)(node->data)));
+			free(node);
 			heap_delete(priority_queue, NULL);
 			return (NULL);
 		}
