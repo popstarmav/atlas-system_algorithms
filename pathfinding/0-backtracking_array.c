@@ -3,21 +3,28 @@
 #include "pathfinding.h"
 
 /**
- * create_point - Creates a new point
+ * create_point - Creates a new point and adds it to the path
  * @x: x-coordinate
  * @y: y-coordinate
- * Return: Pointer to the new point
+ * @path: Queue to store the path
+ * Return: 1 on success, 0 on failure
  */
-static point_t *create_point(int x, int y)
+static int create_point(int x, int y, queue_t *path)
 {
 	point_t *point = malloc(sizeof(point_t));
 
 	if (!point)
-		return (NULL);
+		return (0);
 
 	point->x = x;
 	point->y = y;
-	return (point);
+
+	if (queue_push_front(path, point) == NULL)
+	{
+		free(point);
+		return (0);
+	}
+	return (1);
 }
 
 /**
@@ -31,7 +38,7 @@ static point_t *create_point(int x, int y)
  * Return: 1 if valid, 0 otherwise
  */
 static int is_valid_move(char **map, int rows, int cols,
-			int x, int y, int **visited)
+		int x, int y, int **visited)
 {
 	/* Check if coordinates are within bounds */
 	if (x < 0 || x >= cols || y < 0 || y >= rows)
@@ -49,17 +56,18 @@ static int is_valid_move(char **map, int rows, int cols,
  * @map: 2D array representing the maze
  * @rows: Number of rows in the maze
  * @cols: Number of columns in the maze
- * @x: Current x-coordinate
- * @y: Current y-coordinate
- * @target: Target point
+ * @params: Array containing [x, y, target_x, target_y]
  * @visited: 2D array to track visited cells
  * @path: Queue to store the path
  * Return: 1 if path found, 0 otherwise
  */
-static int backtrack(char **map, int rows, int cols, int x, int y,
-		point_t const *target, int **visited, queue_t *path)
+static int backtrack(char **map, int rows, int cols, int params[4],
+		int **visited, queue_t *path)
 {
-	point_t *point;
+	int x = params[0], y = params[1];
+	int target_x = params[2], target_y = params[3];
+	int directions[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
+	int i, new_x, new_y, new_params[4];
 
 	/* Print current coordinates being checked */
 	printf("Checking coordinates [%d, %d]\n", x, y);
@@ -68,94 +76,58 @@ static int backtrack(char **map, int rows, int cols, int x, int y,
 	visited[y][x] = 1;
 
 	/* If target is reached, add current point to path and return success */
-	if (x == target->x && y == target->y)
+	if (x == target_x && y == target_y)
+		return (create_point(x, y, path));
+
+	/* Try all four directions: RIGHT, BOTTOM, LEFT, TOP */
+	for (i = 0; i < 4; i++)
 	{
-		point = create_point(x, y);
-		if (!point)
-			return (0);
+		new_x = x + directions[i][0];
+		new_y = y + directions[i][1];
 
-		if (queue_push_front(path, point) == NULL)
+		if (is_valid_move(map, rows, cols, new_x, new_y, visited))
 		{
-			free(point);
-			return (0);
-		}
-		return (1);
-	}
+			new_params[0] = new_x;
+			new_params[1] = new_y;
+			new_params[2] = target_x;
+			new_params[3] = target_y;
 
-	/* Try moving RIGHT */
-	if (is_valid_move(map, rows, cols, x + 1, y, visited))
-	{
-		if (backtrack(map, rows, cols, x + 1, y, target, visited, path))
-		{
-			point = create_point(x, y);
-			if (!point)
-				return (0);
-
-			if (queue_push_front(path, point) == NULL)
-			{
-				free(point);
-				return (0);
-			}
-			return (1);
-		}
-	}
-
-	/* Try moving BOTTOM */
-	if (is_valid_move(map, rows, cols, x, y + 1, visited))
-	{
-		if (backtrack(map, rows, cols, x, y + 1, target, visited, path))
-		{
-			point = create_point(x, y);
-			if (!point)
-				return (0);
-
-			if (queue_push_front(path, point) == NULL)
-			{
-				free(point);
-				return (0);
-			}
-			return (1);
-		}
-	}
-
-	/* Try moving LEFT */
-	if (is_valid_move(map, rows, cols, x - 1, y, visited))
-	{
-		if (backtrack(map, rows, cols, x - 1, y, target, visited, path))
-		{
-			point = create_point(x, y);
-			if (!point)
-				return (0);
-
-			if (queue_push_front(path, point) == NULL)
-			{
-				free(point);
-				return (0);
-			}
-			return (1);
-		}
-	}
-
-	/* Try moving TOP */
-	if (is_valid_move(map, rows, cols, x, y - 1, visited))
-	{
-		if (backtrack(map, rows, cols, x, y - 1, target, visited, path))
-		{
-			point = create_point(x, y);
-			if (!point)
-				return (0);
-
-			if (queue_push_front(path, point) == NULL)
-			{
-				free(point);
-				return (0);
-			}
-			return (1);
+			if (backtrack(map, rows, cols, new_params, visited, path))
+				return (create_point(x, y, path));
 		}
 	}
 
 	/* No path found from this cell */
 	return (0);
+}
+
+/**
+ * init_visited - Initializes the visited array
+ * @rows: Number of rows
+ * @cols: Number of columns
+ * Return: 2D array or NULL on failure
+ */
+static int **init_visited(int rows, int cols)
+{
+	int **visited;
+	int i;
+
+	visited = malloc(rows * sizeof(int *));
+	if (!visited)
+		return (NULL);
+
+	for (i = 0; i < rows; i++)
+	{
+		visited[i] = calloc(cols, sizeof(int));
+		if (!visited[i])
+		{
+			while (--i >= 0)
+				free(visited[i]);
+			free(visited);
+			return (NULL);
+		}
+	}
+	return (visited);
 }
 
 /**
@@ -173,47 +145,34 @@ queue_t *backtracking_array(char **map, int rows, int cols,
 	queue_t *path;
 	int **visited;
 	int i, success = 0;
+	int params[4];
 
 	/* Check for invalid inputs */
 	if (!map || !start || !target || rows <= 0 || cols <= 0)
 		return (NULL);
 
-	/* Create a queue to store the path */
 	path = queue_create();
 	if (!path)
 		return (NULL);
 
-	/* Create a 2D array to track visited cells */
-	visited = malloc(rows * sizeof(int *));
+	visited = init_visited(rows, cols);
 	if (!visited)
 	{
 		queue_delete(path);
 		return (NULL);
 	}
 
-	for (i = 0; i < rows; i++)
-	{
-		visited[i] = calloc(cols, sizeof(int));
-		if (!visited[i])
-		{
-			while (--i >= 0)
-				free(visited[i]);
-			free(visited);
-			queue_delete(path);
-			return (NULL);
-		}
-	}
-
-	/* Start backtracking from the start point */
-	success = backtrack(map, rows, cols, start->x, start->y,
-			target, visited, path);
+	params[0] = start->x;
+	params[1] = start->y;
+	params[2] = target->x;
+	params[3] = target->y;
+	success = backtrack(map, rows, cols, params, visited, path);
 
 	/* Free the visited array */
 	for (i = 0; i < rows; i++)
 		free(visited[i]);
 	free(visited);
 
-	/* If no path found, delete the queue and return NULL */
 	if (!success)
 	{
 		queue_delete(path);
