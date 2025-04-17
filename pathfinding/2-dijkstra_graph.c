@@ -33,12 +33,16 @@ static int create_point(int x, int y, queue_t *path)
 /**
  * build_path - Builds the path from start to target
  * @target: Target vertex
+ * @prev_map: Map of previous vertices
+ * @vertex_count: Number of vertices in the graph
  * Return: Queue containing the path
  */
-static queue_t *build_path(vertex_t const *target)
+static queue_t *build_path(vertex_t const *target, vertex_t **prev_map,
+			size_t vertex_count)
 {
 	queue_t *path;
 	vertex_t *current;
+	size_t i;
 
 	path = queue_create();
 	if (!path)
@@ -54,15 +58,19 @@ static queue_t *build_path(vertex_t const *target)
 			return (NULL);
 		}
 
-		/* Move to the previous vertex in the path */
-		current = (vertex_t *)current->content;
-
-		/* Break if we've reached a vertex with no previous (start) */
-		if (current && current->content == NULL)
+		/* Find the previous vertex in the map */
+		for (i = 0; i < vertex_count; i++)
 		{
-			create_point(current->x, current->y, path);
-			break;
+			if (prev_map[i * 2] == current)
+			{
+				current = prev_map[i * 2 + 1];
+				break;
+			}
 		}
+
+		/* If no previous vertex found, we've reached the start */
+		if (i == vertex_count)
+			break;
 	}
 
 	return (path);
@@ -73,9 +81,12 @@ static queue_t *build_path(vertex_t const *target)
  * @current: Current vertex to process
  * @queue: Priority queue
  * @target: Target vertex
+ * @prev_map: Map of previous vertices
+ * @vertex_count: Pointer to the number of vertices processed
  * Return: 1 if target reached, 0 otherwise
  */
-static int process_vertex(vertex_t *current, queue_t *queue, vertex_t *target)
+static int process_vertex(vertex_t *current, queue_t *queue, vertex_t *target,
+			vertex_t **prev_map, size_t *vertex_count)
 {
 	edge_t *edge;
 	size_t new_distance;
@@ -86,23 +97,26 @@ static int process_vertex(vertex_t *current, queue_t *queue, vertex_t *target)
 	if (current == target)
 		return (1);
 
-	/* Mark as visited by setting a flag */
-	current->content = (void *)1;
-
 	/* Process all neighbors */
 	for (edge = current->edges; edge; edge = edge->next)
 	{
-		/* Skip if already visited */
-		if (edge->dest->content != NULL && edge->dest->content == (void *)1)
+		/* Skip if already processed with a shorter path */
+		if (edge->dest->index != UINT_MAX &&
+			edge->dest->index <= current->index + edge->weight)
 			continue;
 
 		new_distance = current->index + edge->weight;
-
+		
+		/* If this is a better path, update the distance and previous vertex */
 		if (new_distance < edge->dest->index)
 		{
 			edge->dest->index = new_distance;
-			/* Store previous vertex pointer in content temporarily */
-			edge->dest->content = (void *)current;
+			
+			/* Store the previous vertex in the map */
+			prev_map[*vertex_count * 2] = edge->dest;
+			prev_map[*vertex_count * 2 + 1] = current;
+			(*vertex_count)++;
+			
 			queue_push_back(queue, edge->dest);
 		}
 	}
@@ -111,50 +125,19 @@ static int process_vertex(vertex_t *current, queue_t *queue, vertex_t *target)
 }
 
 /**
- * initialize_algorithm - Initializes vertices and creates queue
- * @graph: Graph to process
- * @start: Starting vertex
- * @target: Target vertex
- * @queue: Pointer to store created queue
- * Return: Pointer to target vertex in graph, NULL on failure
+ * count_vertices - Counts the number of vertices in a graph
+ * @graph: The graph to count vertices in
+ * Return: Number of vertices
  */
-static vertex_t *initialize_algorithm(graph_t *graph, vertex_t const *start,
-				vertex_t const *target, queue_t **queue)
+static size_t count_vertices(graph_t *graph)
 {
-	vertex_t *vertex, *start_vertex = NULL, *target_vertex = NULL;
+	size_t count = 0;
+	vertex_t *vertex;
 
-	/* Initialize all vertices */
 	for (vertex = graph->vertices; vertex; vertex = vertex->next)
-	{
-		vertex->index = UINT_MAX;
-		vertex->content = NULL;
+		count++;
 
-		if (vertex->x == start->x && vertex->y == start->y)
-			start_vertex = vertex;
-
-		if (vertex->x == target->x && vertex->y == target->y)
-			target_vertex = vertex;
-	}
-
-	if (!start_vertex || !target_vertex)
-		return (NULL);
-
-	/* Set start vertex distance to 0 */
-	start_vertex->index = 0;
-
-	/* Create priority queue */
-	*queue = queue_create();
-	if (!*queue)
-		return (NULL);
-
-	/* Add start vertex to queue */
-	if (queue_push_back(*queue, start_vertex) == NULL)
-	{
-		queue_delete(*queue);
-		return (NULL);
-	}
-
-	return (target_vertex);
+	return (count);
 }
 
 /**
@@ -167,34 +150,95 @@ static vertex_t *initialize_algorithm(graph_t *graph, vertex_t const *start,
 queue_t *dijkstra_graph(graph_t *graph, vertex_t const *start,
 			vertex_t const *target)
 {
-	queue_t *queue;
-	vertex_t *current, *target_vertex;
+	queue_t *queue, *path = NULL;
+	vertex_t *current, *target_vertex = NULL, *start_vertex = NULL;
+	vertex_t **prev_map;
+	size_t vertex_count = 0, max_vertices;
 	int target_reached = 0;
-	queue_t *path;
 
 	if (!graph || !start || !target)
 		return (NULL);
 
-	target_vertex = initialize_algorithm(graph, start, target, &queue);
-	if (!target_vertex || !queue)
+	/* Find start and target vertices in the graph */
+	for (current = graph->vertices; current; current = current->next)
+	{
+		current->index = UINT_MAX;
+		if (current->x == start->x && current->y == start->y)
+			start_vertex = current;
+		if (current->x == target->x && current->y == target->y)
+			target_vertex = current;
+	}
+
+	if (!start_vertex || !target_vertex)
 		return (NULL);
+
+	/* Create map for previous vertices */
+	max_vertices = count_vertices(graph);
+	prev_map = malloc(max_vertices * 2 * sizeof(vertex_t *));
+	if (!prev_map)
+		return (NULL);
+
+	/* Initialize start vertex and queue */
+	start_vertex->index = 0;
+	queue = queue_create();
+	if (!queue)
+	{
+		free(prev_map);
+		return (NULL);
+	}
+
+	if (queue_push_back(queue, start_vertex) == NULL)
+	{
+		queue_delete(queue);
+		free(prev_map);
+		return (NULL);
+	}
 
 	/* Main Dijkstra algorithm loop */
 	while ((current = dequeue(queue)) != NULL)
 	{
-		target_reached = process_vertex(current, queue, target_vertex);
+		target_reached = process_vertex(current, queue, target_vertex,
+						prev_map, &vertex_count);
 		if (target_reached)
 			break;
 	}
 
-	/* No path found */
-	if (target_vertex->content == NULL && target_vertex != current)
+	/* Build path if target was reached */
+	if (target_vertex->index != UINT_MAX)
+		path = build_path(target_vertex, prev_map, vertex_count);
+
+	/* Print path */
+	if (path)
 	{
-		queue_delete(queue);
-		return (NULL);
+		point_t *point;
+		queue_t *path_copy = queue_create();
+		
+		printf("Path found: ");
+		while ((point = dequeue(path)) != NULL)
+		{
+			for (current = graph->vertices; current; current = current->next)
+			{
+				if (current->x == point->x && current->y == point->y)
+				{
+					printf("%s ", (char *)current->content);
+					break;
+				}
+			}
+			
+			/* Save the point for the return value */
+			queue_push_back(path_copy, point);
+		}
+		printf("\n");
+		
+		/* Restore the path for return */
+		while ((point = dequeue(path_copy)) != NULL)
+			queue_push_back(path, point);
+		
+		queue_delete(path_copy);
 	}
 
-	path = build_path(target_vertex);
 	queue_delete(queue);
+	free(prev_map);
 	return (path);
 }
+
