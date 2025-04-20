@@ -11,7 +11,21 @@ void print_node(nary_tree_t const *node, size_t depth)
 int main(void)
 {
     nary_tree_t *root, *tmp, *var, *opt, *betty, *home, *alex;
-    size_t diameter;
+    char const *path[] = {
+        "/",
+        "opt",
+        "Betty",
+        "betty-style.pl",
+        NULL
+    };
+    char const *path2[] = {
+        "/",
+        "opt",
+        "Betty",
+        "betty-style.pl",
+        "Holberton",
+        NULL
+    };
 
     root = nary_tree_insert(NULL, "/");
     if (!root)
@@ -40,8 +54,15 @@ int main(void)
     nary_tree_insert(alex, "Documents");
     nary_tree_insert(alex, "Applications");
 
-    diameter = nary_tree_diameter(root);
-    printf("Diameter = %lu\n", diameter);
+    if (path_exists(root, (char const * const *)path))
+        printf("Path exists!\n");
+    else
+        printf("Path does not exist\n");
+
+    if (path_exists(root, (char const * const *)path2))
+        printf("Path2 exists!\n");
+    else
+        printf("Path2 does not exist\n");
 
     nary_tree_delete(root);
 
