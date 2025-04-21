@@ -14,18 +14,18 @@
  */
 typedef struct nary_tree_s
 {
-        char            *content;
-        struct nary_tree_s  *parent;
-        size_t          nb_children;
-        struct nary_tree_s  *children;
-        struct nary_tree_s  *next;
+	char		*content;
+	struct nary_tree_s	*parent;
+	size_t		nb_children;
+	struct nary_tree_s	*children;
+	struct nary_tree_s	*next;
 } nary_tree_t;
 
 /* Function prototypes */
 nary_tree_t *nary_tree_insert(nary_tree_t *parent, char const *str);
 void nary_tree_delete(nary_tree_t *tree);
 size_t nary_tree_traverse(nary_tree_t const *root,
-                         void (*action)(nary_tree_t const *node, size_t depth));
+	void (*action)(nary_tree_t const *node, size_t depth));
 
 #endif /* NARY_TREES_H */
 
