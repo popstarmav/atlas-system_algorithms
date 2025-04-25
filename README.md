@@ -73,19 +73,3 @@ print(f"Distance: {distance}")
 Comprehensive documentation is available at [docs.atlas-algorithms.org](https://docs.atlas-algorithms.org).
 
 For API reference, see the [API Documentation](https://docs.atlas-algorithms.org/api).
-
-## Contributing
-
-We welcome contributions to Atlas System Algorithms!
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
